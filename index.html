@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge Fit AI Planner</title>
+  <meta name="description" content="Forge Fit builds a four-week workout plan, tracks weekly completion, and stores user check-ins locally in the browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --surface: #ffffff;
+      --surface-alt: #edf7f4;
+      --surface-strong: #f2f4f7;
+      --ink: #121316;
+      --muted: #5c6470;
+      --line: #d8dde5;
+      --accent: #0f766e;
+      --accent-deep: #0a4e49;
+      --accent-soft: #e0f2ef;
+      --rose: #be123c;
+      --rose-soft: #ffe4ec;
+      --gold: #b7791f;
+      --gold-soft: #fff4cf;
+      --green: #15803d;
+      --green-soft: #dcfce7;
+      --shadow: 0 16px 44px rgba(18, 19, 22, 0.08);
+      --radius-xl: 8px;
+      --radius-lg: 8px;
+      --radius-md: 8px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Space Grotesk", sans-serif;
+      background:
+        linear-gradient(rgba(18, 19, 22, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 19, 22, 0.03) 1px, transparent 1px),
+        linear-gradient(135deg, #f7f8fb 0%, #edf7f4 48%, #fbf7fa 100%);
+      background-size: 32px 32px, 32px 32px, auto;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .shell {
+      width: min(1440px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 20px 0 40px;
+    }
+
+    .app-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .brand-block,
+    .app-photo,
+    .notice-strip,
+    .panel,
+    .summary-card,
+    .coach-card,
+    .checkin-card,
+    .week-shell,
+    .empty-state,
+    .day-card,
+    .exercise,
+    .history-item {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .brand-block {
+      display: grid;
+      align-content: center;
+      gap: 16px;
+      min-height: 280px;
+      padding: 28px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font-family: "Archivo Black", sans-serif;
+    }
+
+    .status-badge,
+    .eyebrow,
+    .summary-label {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: var(--accent-deep);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .brand-block h1,
+    .panel h2,
+    .week-title,
+    .day-card h3,
+    .coach-card h3,
+    .summary-value,
+    .empty-state h3 {
+      font-family: "Archivo Black", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .brand-block h1 {
+      max-width: 14ch;
+      margin: 0;
+      font-size: 3.4rem;
+      line-height: 0.96;
+    }
+
+    .brand-block p,
+    .app-photo figcaption,
+    .notice-strip,
+    .subtle,
+    .week-shell p,
+    .summary-card p,
+    .coach-card p,
+    .empty-state p {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .brand-block p {
+      max-width: 70ch;
+      margin: 0;
+    }
+
+    .quick-actions,
+    .form-actions,
+    .tag-row,
+    .tabs,
+    .timeline,
+    .day-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .app-photo {
+      margin: 0;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: minmax(220px, 1fr) auto;
+      background: var(--ink);
+    }
+
+    .app-photo img {
+      width: 100%;
+      height: 100%;
+      min-height: 260px;
+      object-fit: cover;
+    }
+
+    .app-photo figcaption {
+      margin: 0;
+      padding: 14px 16px;
+      color: #ffffff;
+      background: #121316;
+    }
+
+    .notice-strip {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      background: var(--surface-alt);
+      box-shadow: none;
+      color: var(--accent-deep);
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .profile-panel {
+      position: sticky;
+      top: 16px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .subtle {
+      margin: 0 0 18px;
+    }
+
+    .form-stepbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .form-stepbar span {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-strong);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .form-stepbar span:first-child {
+      background: var(--accent-soft);
+      color: var(--accent-deep);
+      border-color: rgba(15, 118, 110, 0.28);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+    }
+
+    label span,
+    .field-title {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      padding: 13px 14px;
+      color: var(--ink);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .option-grid,
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .option-card,
+    .check-card {
+      position: relative;
+    }
+
+    .option-card input,
+    .check-card input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option-card span,
+    .check-card span {
+      display: block;
+      min-height: 100%;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: #ffffff;
+      cursor: pointer;
+      transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .option-card input:focus-visible + span,
+    .check-card input:focus-visible + span {
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+    }
+
+    .option-card input:checked + span,
+    .check-card input:checked + span {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.24);
+    }
+
+    .option-card strong,
+    .check-card strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .option-card small,
+    .check-card small {
+      color: var(--muted);
+      line-height: 1.45;
+      display: block;
+    }
+
+    .form-actions {
+      margin-top: 8px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 12px 24px rgba(15, 118, 110, 0.24);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .dashboard-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .tag,
+    .tab,
+    .pill,
+    .prescription {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface-strong);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tag strong {
+      color: var(--accent-deep);
+    }
+
+    .tab {
+      cursor: pointer;
+      color: var(--muted);
+      transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+    }
+
+    .tab.active {
+      border-color: rgba(15, 118, 110, 0.3);
+      background: var(--accent-soft);
+      color: var(--accent-deep);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .summary-card {
+      padding: 16px;
+      box-shadow: none;
+    }
+
+    .summary-card.highlight {
+      background: var(--accent-soft);
+      border-color: rgba(15, 118, 110, 0.28);
+    }
+
+    .summary-card.warning {
+      background: var(--gold-soft);
+      border-color: rgba(183, 121, 31, 0.28);
+    }
+
+    .summary-card.rose {
+      background: var(--rose-soft);
+      border-color: rgba(190, 18, 60, 0.24);
+    }
+
+    .summary-label {
+      margin-bottom: 8px;
+      padding: 0;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .summary-value {
+      font-size: 2rem;
+      line-height: 1;
+      margin: 0 0 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .summary-card p {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .coach-card {
+      padding: 18px;
+      margin-bottom: 18px;
+      background: var(--surface-alt);
+      box-shadow: none;
+    }
+
+    .coach-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.12rem;
+    }
+
+    .coach-card p {
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .week-shell {
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: none;
+    }
+
+    .week-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .week-title {
+      margin: 12px 0 10px;
+      font-size: 1.9rem;
+      line-height: 1;
+      overflow-wrap: anywhere;
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 12px;
+      align-self: stretch;
+      padding: 14px;
+      border-radius: 8px;
+      background: var(--surface-strong);
+    }
+
+    .progress-bar {
+      height: 12px;
+      border-radius: 8px;
+      background: #dbe2ea;
+      overflow: hidden;
+    }
+
+    .progress-bar span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: inherit;
+      transition: width 0.2s ease;
+    }
+
+    .timeline {
+      margin-top: 14px;
+    }
+
+    .timeline .tag {
+      background: var(--green-soft);
+      border-color: rgba(21, 128, 61, 0.24);
+      color: #14532d;
+    }
+
+    .days {
+      display: grid;
+      gap: 14px;
+    }
+
+    .day-card {
+      padding: 18px;
+      box-shadow: none;
+    }
+
+    .day-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .day-card h3 {
+      margin: 0 0 6px;
+      font-size: 1.16rem;
+    }
+
+    .pill.done {
+      background: var(--green-soft);
+      color: #14532d;
+      border-color: rgba(21, 128, 61, 0.24);
+    }
+
+    .pill.rest {
+      background: var(--gold-soft);
+      color: #7a4d0b;
+      border-color: rgba(183, 121, 31, 0.24);
+    }
+
+    .section-label {
+      margin: 16px 0 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--accent-deep);
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--ink);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .list li + li {
+      margin-top: 6px;
+    }
+
+    .exercise-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .exercise {
+      padding: 14px;
+      background: var(--surface-strong);
+      box-shadow: none;
+    }
+
+    .exercise-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .exercise-head strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+
+    .exercise-head span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .prescription {
+      background: #ffffff;
+      color: var(--accent-deep);
+      white-space: nowrap;
+    }
+
+    details {
+      margin-top: 10px;
+      border-top: 1px dashed var(--line);
+      padding-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-deep);
+    }
+
+    .checkin-shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+      gap: 16px;
+    }
+
+    .checkin-card {
+      padding: 18px;
+      box-shadow: none;
+    }
+
+    .checkin-card h3 {
+      margin: 0 0 8px;
+      font-family: "Archivo Black", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-item {
+      padding: 12px 14px;
+      background: var(--surface-strong);
+      box-shadow: none;
+    }
+
+    .history-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .history-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .empty-state {
+      display: grid;
+      gap: 18px;
+      min-height: 420px;
+      padding: 28px;
+      align-content: center;
+      text-align: left;
+      box-shadow: none;
+    }
+
+    .empty-state h3 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    .empty-state p {
+      margin: 0;
+      max-width: 62ch;
+    }
+
+    .empty-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .empty-list li {
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--surface-strong);
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .footnote {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1120px) {
+      .app-header,
+      .layout,
+      .checkin-shell,
+      .week-head {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-panel {
+        position: static;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .shell {
+        width: min(100% - 18px, 1440px);
+        padding-top: 10px;
+      }
+
+      .brand-block,
+      .panel,
+      .empty-state {
+        padding: 18px;
+      }
+
+      .brand-block h1 {
+        font-size: 2.2rem;
+      }
+
+      .app-photo img {
+        min-height: 220px;
+      }
+
+      .form-stepbar,
+      .input-row,
+      .option-grid,
+      .check-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .day-top,
+      .dashboard-head,
+      .exercise-head {
+        flex-direction: column;
+      }
+
+      .prescription {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-row">
+          <span class="brand-mark">F</span>
+          <span>Forge Fit</span>
+          <span class="status-badge">Public static beta</span>
+        </div>
+        <h1>Personal workout planning with weekly progress tracking.</h1>
+        <p>
+          Build a four-week block from body stats, goal, training level, equipment, schedule, and recovery needs.
+          Complete sessions, log check-ins, and keep a portable backup before the next block starts.
+        </p>
+        <div class="quick-actions">
+          <a class="btn btn-primary" href="#profile-builder">Create a plan</a>
+          <a class="btn btn-secondary" href="#progress-monitor">Open monitor</a>
+        </div>
+      </div>
+      <figure class="app-photo">
+        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80" alt="Athlete preparing dumbbells for a workout">
+        <figcaption>Training plan, session completion, and weekly check-ins stay together in the browser.</figcaption>
+      </figure>
+    </header>
+
+    <section class="notice-strip">
+      Public static version: every visitor gets their own private browser storage. Add login and a database before promising cross-device accounts, coaching dashboards, or server-side monitoring.
+    </section>
+
+    <section class="layout">
+      <div class="panel profile-panel" id="profile-builder">
+        <h2>Profile Builder</h2>
+        <p class="subtle">
+          Enter the user details once. The weekly plan, completion state, check-ins, and backups stay linked to that profile.
+        </p>
+        <div class="form-stepbar" aria-label="Planner steps">
+          <span>1. Profile</span>
+          <span>2. Program</span>
+          <span>3. Monitor</span>
+        </div>
+
+        <form id="profile-form" class="form-grid">
+          <label>
+            <span>Name</span>
+            <input id="name" name="name" type="text" placeholder="Athlete name" required>
+          </label>
+
+          <div class="input-row">
+            <label>
+              <span>Age</span>
+              <input id="age" name="age" type="number" min="13" max="90" placeholder="24" required>
+            </label>
+            <label>
+              <span>Training Level</span>
+              <select id="level" name="level" required>
+                <option value="">Select level</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="input-row">
+            <label>
+              <span>Weight (kg)</span>
+              <input id="weightKg" name="weightKg" type="number" min="30" max="250" step="0.1" placeholder="72" required>
+            </label>
+            <label>
+              <span>Height (cm)</span>
+              <input id="heightCm" name="heightCm" type="number" min="120" max="230" step="0.1" placeholder="175" required>
+            </label>
+          </div>
+
+          <div>
+            <div class="field-title">Primary Goal</div>
+            <div class="option-grid">
+              <label class="option-card">
+                <input type="radio" name="goal" value="muscle" required>
+                <span><strong>Build muscle</strong><small>More hypertrophy, more progressive tension.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="goal" value="fat_loss">
+                <span><strong>Lose fat</strong><small>Conditioning and calorie-burning support.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="goal" value="endurance">
+                <span><strong>Endurance</strong><small>Longer work capacity and stamina.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="goal" value="performance">
+                <span><strong>Athletic performance</strong><small>Strength, power, coordination, and recovery balance.</small></span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <div class="field-title">Workout Style</div>
+            <div class="option-grid">
+              <label class="option-card">
+                <input type="radio" name="style" value="calisthenics" required>
+                <span><strong>Calisthenics</strong><small>Bodyweight strength, control, and skill.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="style" value="strength">
+                <span><strong>Strength</strong><small>Resistance training and heavier progressions.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="style" value="endurance">
+                <span><strong>Endurance</strong><small>Intervals, longer sets, and aerobic work.</small></span>
+              </label>
+              <label class="option-card">
+                <input type="radio" name="style" value="hybrid">
+                <span><strong>Hybrid</strong><small>Mix strength, cardio, and bodyweight work.</small></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="input-row">
+            <label>
+              <span>Training Location</span>
+              <select id="location" name="location" required>
+                <option value="">Choose location</option>
+                <option value="home">Home</option>
+                <option value="gym">Gym</option>
+                <option value="park">Park</option>
+                <option value="mixed">Mixed setup</option>
+              </select>
+            </label>
+            <label>
+              <span>Workout Days / Week</span>
+              <select id="daysPerWeek" name="daysPerWeek" required>
+                <option value="2">2 days</option>
+                <option value="3">3 days</option>
+                <option value="4" selected>4 days</option>
+                <option value="5">5 days</option>
+                <option value="6">6 days</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="input-row">
+            <label>
+              <span>Session Length</span>
+              <select id="sessionMinutes" name="sessionMinutes" required>
+                <option value="30">30 minutes</option>
+                <option value="40">40 minutes</option>
+                <option value="50" selected>50 minutes</option>
+                <option value="60">60 minutes</option>
+                <option value="75">75 minutes</option>
+              </select>
+            </label>
+            <label>
+              <span>Recovery Priority</span>
+              <select id="recoveryFocus" name="recoveryFocus" required>
+                <option value="standard">Standard</option>
+                <option value="high">High recovery support</option>
+                <option value="aggressive">Aggressive progression</option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <div class="field-title">Available Equipment</div>
+            <div class="check-grid">
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="bodyweight" checked>
+                <span><strong>Bodyweight</strong><small>Floor work and movement drills.</small></span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="dumbbells">
+                <span><strong>Dumbbells</strong><small>Single-arm and bilateral loading.</small></span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="bands">
+                <span><strong>Bands</strong><small>Rows, pull-aparts, assisted work.</small></span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="pullup_bar">
+                <span><strong>Pull-up bar</strong><small>Vertical pulling and hanging core work.</small></span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="bench_box">
+                <span><strong>Bench or box</strong><small>Step-ups, incline work, split squats.</small></span>
+              </label>
+              <label class="check-card">
+                <input type="checkbox" name="equipment" value="jump_rope">
+                <span><strong>Jump rope</strong><small>Warm-ups and conditioning blocks.</small></span>
+              </label>
+            </div>
+          </div>
+
+          <label>
+            <span>Needs, limits, injuries, or focus points</span>
+            <textarea id="needs" name="needs" placeholder="Example: weak shoulders, lower-back caution, improve pull-ups, training for fat loss at home."></textarea>
+          </label>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Generate 4-week plan</button>
+            <button class="btn btn-secondary" type="button" id="reset-plan">Reset saved data</button>
+            <button class="btn btn-secondary" type="button" id="export-data">Export saved data</button>
+            <button class="btn btn-secondary" type="button" id="import-data">Import saved data</button>
+            <input class="visually-hidden" id="import-data-file" type="file" accept="application/json,.json">
+          </div>
+          <p class="footnote">
+            Export keeps a portable JSON backup. Import replaces the saved local planner data in this browser.
+          </p>
+        </form>
+      </div>
+
+      <div class="panel" id="progress-monitor">
+        <div id="dashboard-root">
+          <div class="empty-state">
+            <h3>No active plan yet</h3>
+            <p>
+              Create a profile to generate the four-week block. Progress monitoring starts when the first session is saved.
+            </p>
+            <ul class="empty-list">
+              <li>Weekly completion percentage</li>
+              <li>Next open training day</li>
+              <li>Weight and energy check-in trend</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "forge_fit_ai_planner_v1";
+    const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const WEEK_PHASES = [
+      {
+        key: "foundation",
+        title: "Week 1 - Foundation",
+        focus: "Learn form, set the baseline, and finish sessions with clean reps.",
+        repShift: 0,
+        setShift: 0,
+        restShift: 10,
+        cue: "Move with control. Stop 2 reps before form breaks."
+      },
+      {
+        key: "build",
+        title: "Week 2 - Build",
+        focus: "Add a little volume and tighten tempo on the main lifts.",
+        repShift: 2,
+        setShift: 0,
+        restShift: 0,
+        cue: "Keep the same movement quality while raising total work."
+      },
+      {
+        key: "overload",
+        title: "Week 3 - Overload",
+        focus: "Hardest week. Higher density, tougher variations, and stronger finishers.",
+        repShift: 3,
+        setShift: 1,
+        restShift: -10,
+        cue: "Push effort, but do not let technique collapse."
+      },
+      {
+        key: "reload",
+        title: "Week 4 - Reload + Test",
+        focus: "Reduce fatigue slightly, sharpen execution, and test progress.",
+        repShift: -1,
+        setShift: 0,
+        restShift: 15,
+        cue: "Move fast, recover well, and note benchmark improvements."
+      }
+    ];
+
+    const LEVEL_INDEX = { beginner: 0, intermediate: 1, advanced: 2 };
+
+    const EXERCISE_LIBRARY = {
+      push: [
+        {
+          id: "incline-pushup",
+          name: "Incline Push-up",
+          locations: ["home", "park", "mixed"],
+          requiresAny: ["bodyweight", "bench_box"],
+          steps: [
+            "Hands on a bench, bed, or stable box at chest width.",
+            "Brace the core before lowering the chest toward the edge.",
+            "Press up without shrugging the shoulders."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 12, rest: 60 },
+            advanced: { type: "reps", sets: 4, value: 15, rest: 60 }
+          }
+        },
+        {
+          id: "pushup",
+          name: "Push-up",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Start in a rigid plank with hands under the shoulders.",
+            "Lower chest and hips together.",
+            "Drive the floor away and lock out with full-body tension."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 12, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 15, rest: 75 }
+          }
+        },
+        {
+          id: "dumbbell-floor-press",
+          name: "Dumbbell Floor Press",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["dumbbells"],
+          steps: [
+            "Lie on the floor with dumbbells over the chest.",
+            "Lower until the triceps touch the floor lightly.",
+            "Press up and squeeze through the chest."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        },
+        {
+          id: "pike-pushup",
+          name: "Pike Push-up",
+          locations: ["home", "park", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Lift the hips high and look toward the feet.",
+            "Lower the head between the hands, not in front of them.",
+            "Press back up while keeping elbows tracking back."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 6, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 8, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 10, rest: 90 }
+          }
+        },
+        {
+          id: "bench-press",
+          name: "Bench Press",
+          locations: ["gym", "mixed"],
+          requiresAny: ["gym_base"],
+          steps: [
+            "Pin the shoulders back before unracking.",
+            "Lower the bar to mid-chest under control.",
+            "Drive up while keeping feet planted and wrists stacked."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 90 },
+            intermediate: { type: "reps", sets: 4, value: 8, rest: 90 },
+            advanced: { type: "reps", sets: 5, value: 6, rest: 105 }
+          }
+        },
+        {
+          id: "dips",
+          name: "Bench or Bar Dips",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bench_box", "park_base", "gym_base"],
+          steps: [
+            "Set the shoulders down before each rep.",
+            "Lower only to a comfortable shoulder range.",
+            "Press through the palms and keep elbows close."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 90 }
+          }
+        },
+        {
+          id: "db-shoulder-press",
+          name: "Dumbbell Shoulder Press",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["dumbbells"],
+          steps: [
+            "Sit or stand tall with ribs stacked over hips.",
+            "Press overhead without leaning back hard.",
+            "Lower slowly until elbows come just below shoulder height."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        },
+        {
+          id: "archer-pushup",
+          name: "Archer Push-up",
+          locations: ["home", "park", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Set hands wide and shift into one side as you lower.",
+            "Keep the straight arm active and the chest low.",
+            "Push back to center before switching sides."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 5, rest: 90 },
+            intermediate: { type: "reps", sets: 4, value: 6, rest: 90 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        }
+      ],
+      pull: [
+        {
+          id: "band-row",
+          name: "Band Row",
+          locations: ["home", "park", "mixed"],
+          requiresAny: ["bands"],
+          steps: [
+            "Anchor the band and step back until it is taut.",
+            "Pull elbows low and back, not straight up.",
+            "Pause with shoulder blades squeezed together."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 12, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 14, rest: 60 },
+            advanced: { type: "reps", sets: 5, value: 16, rest: 60 }
+          }
+        },
+        {
+          id: "one-arm-db-row",
+          name: "One-arm Dumbbell Row",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["dumbbells"],
+          steps: [
+            "Brace one hand on a bench or thigh.",
+            "Drive the elbow toward the hip, not the shoulder.",
+            "Lower with a full stretch at the bottom."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        },
+        {
+          id: "inverted-row",
+          name: "Inverted Row",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["pullup_bar", "gym_base", "park_base"],
+          steps: [
+            "Set the body in a straight line under the bar.",
+            "Pull the chest to the bar while keeping glutes tight.",
+            "Lower under control and keep the neck neutral."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 90 }
+          }
+        },
+        {
+          id: "pullup",
+          name: "Pull-up or Assisted Pull-up",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["pullup_bar", "park_base", "gym_base"],
+          steps: [
+            "Start from a dead hang with shoulders active.",
+            "Drive elbows toward the ribs and avoid kicking.",
+            "Lower all the way down before the next rep."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 4, rest: 90 },
+            intermediate: { type: "reps", sets: 4, value: 6, rest: 90 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 105 }
+          }
+        },
+        {
+          id: "lat-pulldown",
+          name: "Lat Pulldown",
+          locations: ["gym", "mixed"],
+          requiresAny: ["gym_base"],
+          steps: [
+            "Lean back slightly and pin the chest tall.",
+            "Pull the bar to the upper chest.",
+            "Return fully overhead without losing rib position."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        },
+        {
+          id: "face-pull",
+          name: "Face Pull",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["bands", "gym_base"],
+          steps: [
+            "Pull toward the face with elbows high.",
+            "Rotate the hands back slightly at the end.",
+            "Use a light load and focus on upper-back squeeze."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 12, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 15, rest: 60 },
+            advanced: { type: "reps", sets: 4, value: 18, rest: 60 }
+          }
+        },
+        {
+          id: "towel-row",
+          name: "Towel Row Isometric",
+          locations: ["home", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Wrap a towel around a sturdy post or shut door anchor.",
+            "Lean back and pull hard for the full hold.",
+            "Keep the chest up and elbows tight."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 20, rest: 60 },
+            intermediate: { type: "seconds", sets: 4, value: 25, rest: 60 },
+            advanced: { type: "seconds", sets: 5, value: 30, rest: 75 }
+          }
+        },
+        {
+          id: "chinup",
+          name: "Chin-up",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["pullup_bar", "park_base", "gym_base"],
+          steps: [
+            "Use a shoulder-width underhand grip.",
+            "Pull the chest up without swinging the legs.",
+            "Lower slowly and keep the core tight."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 4, rest: 90 },
+            intermediate: { type: "reps", sets: 4, value: 6, rest: 90 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 105 }
+          }
+        }
+      ],
+      legs: [
+        {
+          id: "bodyweight-squat",
+          name: "Bodyweight Squat",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Stand with feet just outside hip width.",
+            "Sit down between the hips and keep the heels grounded.",
+            "Stand up by driving through the whole foot."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 12, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 15, rest: 60 },
+            advanced: { type: "reps", sets: 5, value: 18, rest: 60 }
+          }
+        },
+        {
+          id: "goblet-squat",
+          name: "Goblet Squat",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["dumbbells"],
+          steps: [
+            "Hold one dumbbell close to the chest.",
+            "Drop the hips down while keeping the torso tall.",
+            "Drive up through the mid-foot and exhale at the top."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 90 }
+          }
+        },
+        {
+          id: "split-squat",
+          name: "Split Squat",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight", "dumbbells"],
+          steps: [
+            "Take a long split stance and stay balanced.",
+            "Lower straight down with the front heel heavy.",
+            "Drive through the front leg to stand tall."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 90 }
+          }
+        },
+        {
+          id: "reverse-lunge",
+          name: "Reverse Lunge",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight", "dumbbells"],
+          steps: [
+            "Step back long enough to keep the front shin stable.",
+            "Lower until both knees bend comfortably.",
+            "Push through the front foot to return."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 75 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 90 }
+          }
+        },
+        {
+          id: "rdl",
+          name: "Romanian Deadlift",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["dumbbells", "gym_base"],
+          steps: [
+            "Unlock the knees and hinge the hips back.",
+            "Keep the dumbbells or bar close to the thighs.",
+            "Stand tall by driving the hips through."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 10, rest: 90 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 90 },
+            advanced: { type: "reps", sets: 5, value: 8, rest: 105 }
+          }
+        },
+        {
+          id: "step-up",
+          name: "Step-up",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bench_box"],
+          steps: [
+            "Plant the whole foot on the box or bench.",
+            "Stand up without bouncing off the trailing leg.",
+            "Lower slowly and switch sides."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 75 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 75 }
+          }
+        },
+        {
+          id: "hip-thrust",
+          name: "Hip Thrust or Glute Bridge",
+          locations: ["home", "gym", "mixed"],
+          requiresAny: ["bodyweight", "bench_box", "dumbbells"],
+          steps: [
+            "Drive the upper back into the bench or floor.",
+            "Tuck the ribs and squeeze the glutes hard at the top.",
+            "Lower under control without arching the lower back."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 12, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 15, rest: 60 },
+            advanced: { type: "reps", sets: 5, value: 15, rest: 75 }
+          }
+        },
+        {
+          id: "calf-raise",
+          name: "Calf Raise",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight", "bench_box", "dumbbells"],
+          steps: [
+            "Rise all the way onto the ball of the foot.",
+            "Pause at the top for one second.",
+            "Lower slowly into a full stretch."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 15, rest: 45 },
+            intermediate: { type: "reps", sets: 4, value: 18, rest: 45 },
+            advanced: { type: "reps", sets: 5, value: 20, rest: 45 }
+          }
+        }
+      ],
+      conditioning: [
+        {
+          id: "rope-intervals",
+          name: "Jump Rope Intervals",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["jump_rope"],
+          steps: [
+            "Start easy for the first round and find rhythm.",
+            "Keep elbows close to the ribs.",
+            "Land softly and breathe through the nose when possible."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 5, value: 40, rest: 20 },
+            intermediate: { type: "seconds", sets: 6, value: 45, rest: 20 },
+            advanced: { type: "seconds", sets: 8, value: 45, rest: 15 }
+          }
+        },
+        {
+          id: "burpee",
+          name: "Burpee",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Drop hands down under the shoulders first.",
+            "Kick back hard, keep the trunk braced, then return.",
+            "Jump tall at the top and reset the breath."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 60 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 60 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 60 }
+          }
+        },
+        {
+          id: "mountain-climber",
+          name: "Mountain Climber",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Set up in a plank first, then drive knees with speed.",
+            "Keep shoulders over wrists and hips level.",
+            "Do not let the lower back sag."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 30, rest: 30 },
+            intermediate: { type: "seconds", sets: 4, value: 35, rest: 25 },
+            advanced: { type: "seconds", sets: 5, value: 40, rest: 20 }
+          }
+        },
+        {
+          id: "fast-walk-run",
+          name: "Fast Walk or Run Block",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Warm up for two minutes before increasing pace.",
+            "Hold a speed that raises breathing but keeps posture strong.",
+            "Walk one minute after each work block if needed."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 4, value: 90, rest: 45 },
+            intermediate: { type: "seconds", sets: 5, value: 120, rest: 45 },
+            advanced: { type: "seconds", sets: 6, value: 150, rest: 45 }
+          }
+        },
+        {
+          id: "shadow-boxing",
+          name: "Shadow Boxing",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Stay light on the feet and keep the guard high.",
+            "Throw clean combinations for the full round.",
+            "Breathe sharply on each punch."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 4, value: 60, rest: 30 },
+            intermediate: { type: "seconds", sets: 5, value: 75, rest: 25 },
+            advanced: { type: "seconds", sets: 6, value: 90, rest: 20 }
+          }
+        },
+        {
+          id: "bike-rower",
+          name: "Bike or Rower Intervals",
+          locations: ["gym", "mixed"],
+          requiresAny: ["gym_base"],
+          steps: [
+            "Start with a controlled first interval.",
+            "Drive effort from the legs first, then the arms if rowing.",
+            "Hold a repeatable pace across rounds."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 4, value: 90, rest: 45 },
+            intermediate: { type: "seconds", sets: 5, value: 120, rest: 45 },
+            advanced: { type: "seconds", sets: 6, value: 150, rest: 45 }
+          }
+        }
+      ],
+      core: [
+        {
+          id: "plank",
+          name: "Plank",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Elbows under shoulders, glutes squeezed.",
+            "Push the floor away and keep the ribs tucked.",
+            "Breathe shallowly without losing brace."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 30, rest: 30 },
+            intermediate: { type: "seconds", sets: 4, value: 40, rest: 30 },
+            advanced: { type: "seconds", sets: 5, value: 50, rest: 30 }
+          }
+        },
+        {
+          id: "dead-bug",
+          name: "Dead Bug",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Flatten the lower back to the floor first.",
+            "Reach opposite arm and leg away slowly.",
+            "Return with control and keep the ribs down."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 30 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 30 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 30 }
+          }
+        },
+        {
+          id: "hollow-hold",
+          name: "Hollow Hold",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Press the lower back into the floor.",
+            "Lift shoulders and legs without losing the brace.",
+            "Shorten the range if the back pops off the floor."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 20, rest: 30 },
+            intermediate: { type: "seconds", sets: 4, value: 25, rest: 30 },
+            advanced: { type: "seconds", sets: 5, value: 30, rest: 30 }
+          }
+        },
+        {
+          id: "side-plank",
+          name: "Side Plank",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Stack shoulder over elbow and hips over knees or feet.",
+            "Lift the hips high and keep the neck long.",
+            "Switch sides with minimal rest."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 20, rest: 20 },
+            intermediate: { type: "seconds", sets: 4, value: 25, rest: 20 },
+            advanced: { type: "seconds", sets: 5, value: 30, rest: 20 }
+          }
+        },
+        {
+          id: "hanging-knee-raise",
+          name: "Hanging Knee Raise",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["pullup_bar", "park_base", "gym_base"],
+          steps: [
+            "Start from an active hang, not a loose shoulder position.",
+            "Raise the knees by curling the pelvis slightly.",
+            "Lower with control and avoid swinging."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 45 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 45 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 45 }
+          }
+        }
+      ],
+      skill: [
+        {
+          id: "wall-handstand",
+          name: "Wall Handstand Hold",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bodyweight"],
+          steps: [
+            "Place hands shoulder-width apart and kick up softly.",
+            "Stack wrists, shoulders, hips, and ankles in one line.",
+            "Push tall through the floor for the full hold."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 20, rest: 45 },
+            intermediate: { type: "seconds", sets: 4, value: 25, rest: 45 },
+            advanced: { type: "seconds", sets: 5, value: 30, rest: 60 }
+          }
+        },
+        {
+          id: "scap-pullup",
+          name: "Scap Pull-up",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["pullup_bar", "park_base", "gym_base"],
+          steps: [
+            "Hang with elbows straight.",
+            "Pull the shoulders down and back without bending the arms.",
+            "Return to the hang slowly."
+          ],
+          scheme: {
+            beginner: { type: "reps", sets: 3, value: 8, rest: 45 },
+            intermediate: { type: "reps", sets: 4, value: 10, rest: 45 },
+            advanced: { type: "reps", sets: 5, value: 12, rest: 45 }
+          }
+        },
+        {
+          id: "support-hold",
+          name: "Support Hold",
+          locations: ["park", "gym", "mixed"],
+          requiresAny: ["park_base", "gym_base", "bench_box"],
+          steps: [
+            "Press down hard into the bars or box edges.",
+            "Lock the elbows and keep the chest lifted.",
+            "Stay tall without letting the shoulders roll forward."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 15, rest: 45 },
+            intermediate: { type: "seconds", sets: 4, value: 20, rest: 45 },
+            advanced: { type: "seconds", sets: 5, value: 25, rest: 45 }
+          }
+        },
+        {
+          id: "l-sit-tuck",
+          name: "Tuck L-sit Hold",
+          locations: ["home", "park", "gym", "mixed"],
+          requiresAny: ["bench_box", "park_base", "gym_base"],
+          steps: [
+            "Push into the hands and lift the hips.",
+            "Keep knees tucked close while shoulders stay depressed.",
+            "Fight to keep the feet off the floor for the full hold."
+          ],
+          scheme: {
+            beginner: { type: "seconds", sets: 3, value: 10, rest: 45 },
+            intermediate: { type: "seconds", sets: 4, value: 15, rest: 45 },
+            advanced: { type: "seconds", sets: 5, value: 20, rest: 45 }
+          }
+        }
+      ]
+    };
+
+    const state = {
+      profile: null,
+      plan: null,
+      progress: {},
+      checkIns: [],
+      viewedWeek: 0
+    };
+
+    const form = document.getElementById("profile-form");
+    const dashboardRoot = document.getElementById("dashboard-root");
+    const resetButton = document.getElementById("reset-plan");
+    const exportButton = document.getElementById("export-data");
+    const importButton = document.getElementById("import-data");
+    const importFileInput = document.getElementById("import-data-file");
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function toTitle(text) {
+      return text
+        .split(/[_\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    }
+
+    function calculateBmi(weightKg, heightCm) {
+      const heightM = heightCm / 100;
+      return +(weightKg / (heightM * heightM)).toFixed(1);
+    }
+
+    function getNeedsFlags(needs) {
+      const text = String(needs || "").toLowerCase();
+      return {
+        shoulder: /shoulder|rotator/.test(text),
+        knee: /knee/.test(text),
+        back: /back|spine|disc/.test(text),
+        wrist: /wrist/.test(text),
+        mobility: /mobility|stiff|tight/.test(text),
+        pullup: /pull[-\s]?up|chin[-\s]?up/.test(text),
+        fatLoss: /fat loss|lose fat|weight loss/.test(text)
+      };
+    }
+
+    function getAvailableEquipment(profile) {
+      const base = new Set(profile.equipment);
+      base.add("bodyweight");
+      if (profile.location === "gym" || profile.location === "mixed") {
+        base.add("gym_base");
+      }
+      if (profile.location === "park" || profile.location === "mixed") {
+        base.add("park_base");
+      }
+      return base;
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      try {
+        const saved = JSON.parse(raw);
+        state.profile = saved.profile || null;
+        state.plan = saved.plan || null;
+        state.progress = saved.progress || {};
+        state.checkIns = saved.checkIns || [];
+        state.viewedWeek = getCurrentWeekIndex();
+      } catch (error) {
+        console.error("Failed to parse saved planner data", error);
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          profile: state.profile,
+          plan: state.plan,
+          progress: state.progress,
+          checkIns: state.checkIns
+        })
+      );
+    }
+
+    function getSerializableState() {
+      return {
+        profile: state.profile,
+        plan: state.plan,
+        progress: state.progress || {},
+        checkIns: state.checkIns || []
+      };
+    }
+
+    function exportSavedData() {
+      if (!state.profile && !state.plan && !(state.checkIns || []).length) {
+        alert("No saved workout data to export yet.");
+        return;
+      }
+
+      const payload = {
+        app: "Forge Fit AI Planner",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        storageKey: STORAGE_KEY,
+        data: getSerializableState()
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const dateLabel = new Date().toISOString().slice(0, 10);
+
+      link.href = url;
+      link.download = `forge-fit-planner-backup-${dateLabel}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function normalizeImportedData(parsed) {
+      const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+
+      if (!data || typeof data !== "object" || !data.profile || !data.plan || !Array.isArray(data.plan.weeks)) {
+        throw new Error("Backup file does not contain a saved workout plan.");
+      }
+
+      return {
+        profile: data.profile,
+        plan: data.plan,
+        progress: data.progress && typeof data.progress === "object" ? data.progress : {},
+        checkIns: Array.isArray(data.checkIns) ? data.checkIns : []
+      };
+    }
+
+    function importSavedData(file) {
+      const reader = new FileReader();
+
+      reader.addEventListener("load", () => {
+        try {
+          const imported = normalizeImportedData(JSON.parse(String(reader.result || "{}")));
+
+          state.profile = imported.profile;
+          state.plan = imported.plan;
+          state.progress = imported.progress;
+          state.checkIns = imported.checkIns;
+          state.viewedWeek = getCurrentWeekIndex();
+          saveState();
+          fillForm(state.profile);
+          renderDashboard();
+          alert("Imported saved workout data.");
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          importFileInput.value = "";
+        }
+      });
+
+      reader.addEventListener("error", () => {
+        alert("Could not read that backup file.");
+        importFileInput.value = "";
+      });
+
+      reader.readAsText(file);
+    }
+
+    function getCurrentWeekIndex() {
+      if (!state.plan?.createdAt) {
+        return 0;
+      }
+      const diffMs = Date.now() - new Date(state.plan.createdAt).getTime();
+      const weeksPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+      return Math.max(0, Math.min(WEEK_PHASES.length - 1, weeksPassed));
+    }
+
+    function isCycleComplete() {
+      if (!state.plan?.createdAt) {
+        return false;
+      }
+      const diffMs = Date.now() - new Date(state.plan.createdAt).getTime();
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7)) >= WEEK_PHASES.length;
+    }
+
+    function getTrainingDayIndices(daysPerWeek) {
+      const map = {
+        2: [1, 4],
+        3: [0, 2, 4],
+        4: [0, 1, 3, 5],
+        5: [0, 1, 3, 4, 5],
+        6: [0, 1, 2, 3, 4, 5]
+      };
+      return map[daysPerWeek] || map[4];
+    }
+
+    function getFocusOrder(profile) {
+      const days = profile.daysPerWeek;
+      const style = profile.style;
+      const goal = profile.goal;
+
+      if (style === "calisthenics") {
+        return {
+          2: ["upper", "legs"],
+          3: ["push", "pull", "legs"],
+          4: ["push", "pull", "legs", "skill"],
+          5: ["push", "pull", "legs", "upper", "conditioning"],
+          6: ["push", "pull", "legs", "skill", "upper", "conditioning"]
+        }[days];
+      }
+
+      if (style === "strength") {
+        return {
+          2: ["upper", "lower"],
+          3: ["push", "pull", "legs"],
+          4: ["upper", "lower", "push", "pull"],
+          5: ["push", "pull", "legs", "upper", "lower"],
+          6: ["push", "pull", "legs", "upper", "lower", "conditioning"]
+        }[days];
+      }
+
+      if (style === "endurance" || goal === "endurance") {
+        return {
+          2: ["conditioning", "full"],
+          3: ["conditioning", "legs", "conditioning"],
+          4: ["conditioning", "upper", "legs", "conditioning"],
+          5: ["conditioning", "upper", "legs", "conditioning", "full"],
+          6: ["conditioning", "upper", "legs", "conditioning", "full", "conditioning"]
+        }[days];
+      }
+
+      return {
+        2: ["full", "conditioning"],
+        3: ["upper", "lower", "conditioning"],
+        4: ["push", "pull", "legs", "conditioning"],
+        5: ["push", "pull", "legs", "upper", "conditioning"],
+        6: ["push", "pull", "legs", "upper", "lower", "conditioning"]
+      }[days];
+    }
+
+    function buildWarmup(profile, focus) {
+      const base = [
+        "2 minutes easy movement: march, light rope, or brisk walk.",
+        "Breathing reset: 5 slow nasal breaths with ribs down.",
+        "Joint prep: neck, shoulders, hips, and ankles for 30 seconds each."
+      ];
+
+      const byFocus = {
+        push: [
+          "10 scap push-ups or wall push-ups.",
+          "12 shoulder circles forward and backward.",
+          "8 slow inchworms."
+        ],
+        pull: [
+          "12 band pull-aparts or prone Y-T-W raises.",
+          "8 thoracic rotations per side.",
+          "10 scapular retractions."
+        ],
+        legs: [
+          "10 hip hinges with hands on thighs.",
+          "8 squat-to-stand reps.",
+          "10 reverse lunges total."
+        ],
+        upper: [
+          "10 scap push-ups.",
+          "12 band pulls or floor snow angels.",
+          "8 slow pike reach-throughs."
+        ],
+        lower: [
+          "10 glute bridges.",
+          "8 lateral lunges total.",
+          "20 seconds calf bounce each side."
+        ],
+        conditioning: [
+          "3 ramp-up rounds of 20 seconds easy pace, 20 seconds moderate pace.",
+          "8 arm swings and 8 leg swings each side.",
+          "6 fast but clean bodyweight squats."
+        ],
+        full: [
+          "8 inchworms.",
+          "10 glute bridges.",
+          "20 seconds high-knee march."
+        ],
+        skill: [
+          "30 seconds wrist prep in all directions.",
+          "10 scap shrugs in plank or hang.",
+          "20 seconds hollow hold rehearsal."
+        ]
+      };
+
+      const locationAddOn = {
+        home: "Check floor space and keep one towel or water bottle nearby.",
+        gym: "Use the first light set of each lift as extra warm-up.",
+        park: "Do one easier set on the bar before hard work.",
+        mixed: "Set up all stations before the first working set."
+      };
+
+      const flags = getNeedsFlags(profile.needs);
+      const extraPrep = [];
+      if (flags.shoulder) {
+        extraPrep.push("Add 1 extra minute of shoulder blade control and light external rotation work.");
+      }
+      if (flags.knee) {
+        extraPrep.push("Add slow terminal knee extension and bodyweight split squat rehearsal before hard sets.");
+      }
+      if (flags.back) {
+        extraPrep.push("Add 6 slow bird-dogs per side and brace before every heavy hinge or squat.");
+      }
+      if (flags.wrist) {
+        extraPrep.push("Use gentle wrist circles and reduce deep wrist loading if discomfort appears.");
+      }
+      if (flags.mobility) {
+        extraPrep.push("Stay in the mobility drill positions 10 seconds longer than prescribed.");
+      }
+
+      return [...base, ...(byFocus[focus] || byFocus.full), ...extraPrep, locationAddOn[profile.location]];
+    }
+
+    function buildCooldown(focus) {
+      const base = [
+        "Walk for 2 minutes and bring breathing down.",
+        "Stretch the main trained muscles for 30 to 40 seconds each.",
+        "Write one quick note: energy, pain, or a best set from today."
+      ];
+
+      const extras = {
+        push: "Open the chest and front shoulders gently after pressing.",
+        pull: "Spend extra time on lats, forearms, and upper back.",
+        legs: "Stretch calves, hip flexors, hamstrings, and glutes.",
+        upper: "Cool down the shoulders and wrists deliberately.",
+        lower: "Add ankle and hip mobility before finishing.",
+        conditioning: "Keep walking until breathing normalizes.",
+        full: "Reset posture and relax the lower back with dead hangs or child's pose.",
+        skill: "Shake out wrists and repeat one easy technical rep."
+      };
+
+      return [...base, extras[focus] || extras.full];
+    }
+
+    function getExercisePool(focus) {
+      const library = EXERCISE_LIBRARY;
+      const map = {
+        push: [library.push, library.core],
+        pull: [library.pull, library.core],
+        legs: [library.legs, library.core],
+        upper: [library.push, library.pull, library.core],
+        lower: [library.legs, library.core],
+        conditioning: [library.conditioning, library.core],
+        full: [library.push, library.pull, library.legs, library.core],
+        skill: [library.skill, library.push, library.pull, library.core]
+      };
+      return map[focus] || map.full;
+    }
+
+    function isExerciseAllowed(exercise, profile, availableEquipment) {
+      const flags = getNeedsFlags(profile.needs);
+      const locationOk =
+        exercise.locations.includes(profile.location) ||
+        profile.location === "mixed" ||
+        exercise.locations.includes("mixed");
+
+      const equipmentOk = (exercise.requiresAny || []).some((item) => availableEquipment.has(item));
+      const restricted =
+        (flags.shoulder && ["dips", "bench-press", "wall-handstand"].includes(exercise.id)) ||
+        (flags.back && ["rdl"].includes(exercise.id)) ||
+        (flags.knee && ["burpee"].includes(exercise.id)) ||
+        (flags.wrist && ["archer-pushup", "wall-handstand"].includes(exercise.id));
+
+      return locationOk && equipmentOk && !restricted;
+    }
+
+    function selectExercises(profile, focus, weekIndex, seedOffset) {
+      const availableEquipment = getAvailableEquipment(profile);
+      const pools = getExercisePool(focus).flat();
+      const filtered = pools.filter((exercise) => isExerciseAllowed(exercise, profile, availableEquipment));
+      const fallback = pools.filter((exercise) => (exercise.requiresAny || []).includes("bodyweight"));
+      const source = filtered.length ? filtered : fallback;
+      const count = profile.sessionMinutes >= 60 ? 5 : profile.sessionMinutes >= 40 ? 4 : 3;
+      const start = (weekIndex * 3 + seedOffset * 2 + profile.name.length) % source.length;
+      const selected = [];
+      const used = new Set();
+
+      for (let index = 0; index < source.length * 2 && selected.length < count; index += 1) {
+        const item = source[(start + index) % source.length];
+        if (!used.has(item.id)) {
+          used.add(item.id);
+          selected.push(item);
+        }
+      }
+
+      return selected;
+    }
+
+    function buildPrescription(exercise, profile, weekPhase) {
+      const base = exercise.scheme[profile.level];
+      const multiplier =
+        profile.recoveryFocus === "aggressive" ? 1 :
+        profile.recoveryFocus === "high" ? -1 : 0;
+      const sets = Math.max(2, base.sets + weekPhase.setShift + (profile.sessionMinutes >= 75 ? 1 : 0));
+      const adjustedValue = Math.max(4, base.value + weekPhase.repShift + multiplier);
+      const adjustedRest = Math.max(20, base.rest + weekPhase.restShift + (profile.goal === "muscle" ? 10 : 0));
+      const unitLabel = base.type === "seconds" ? "sec" : "reps";
+      const benchmarkNote = weekPhase.key === "reload" ? "Last set: quality benchmark set." : weekPhase.cue;
+
+      return {
+        display: base.type === "seconds"
+          ? sets + " sets x " + adjustedValue + " " + unitLabel + " / " + adjustedRest + " sec rest"
+          : sets + " sets x " + adjustedValue + " " + unitLabel + " / " + adjustedRest + " sec rest",
+        benchmarkNote
+      };
+    }
+
+    function buildSession(profile, focus, dayName, dayIndex, weekIndex) {
+      const weekPhase = WEEK_PHASES[weekIndex];
+      const selected = selectExercises(profile, focus, weekIndex, dayIndex);
+      const exercises = selected.map((exercise) => ({
+        name: exercise.name,
+        steps: exercise.steps,
+        prescription: buildPrescription(exercise, profile, weekPhase)
+      }));
+
+      const focusNames = {
+        push: "Push strength",
+        pull: "Pull strength",
+        legs: "Leg strength",
+        upper: "Upper body",
+        lower: "Lower body",
+        conditioning: "Conditioning",
+        full: "Full body",
+        skill: "Skill + control"
+      };
+
+      const sessionCue = {
+        push: "Lead with clean pressing mechanics and shoulder stability.",
+        pull: "Own the top squeeze on every rep.",
+        legs: "Use depth and knee control before adding speed.",
+        upper: "Keep pressing and pulling balanced.",
+        lower: "Stay stable through the foot and pelvis.",
+        conditioning: "Pace the first round so the last round stays sharp.",
+        full: "Keep transitions tight and avoid lazy setup.",
+        skill: "Short rests are fine, sloppy reps are not."
+      };
+
+      return {
+        type: "training",
+        dayName,
+        focus,
+        title: focusNames[focus],
+        sessionCue: sessionCue[focus],
+        warmup: buildWarmup(profile, focus),
+        cooldown: buildCooldown(focus),
+        exercises
+      };
+    }
+
+    function buildRecoveryDay(profile, dayName, weekIndex) {
+      const phase = WEEK_PHASES[weekIndex];
+      const recoveryBias = profile.recoveryFocus === "high" ? "longer" : "normal";
+      return {
+        type: "recovery",
+        dayName,
+        focus: "recovery",
+        title: "Recovery / Mobility",
+        sessionCue: "Recover hard enough to train hard next session.",
+        warmup: [
+          "3 minutes easy walk, cycle, or slow rope.",
+          "Shoulder circles, hip circles, and ankle rocks for 30 seconds each."
+        ],
+        cooldown: [
+          "5 to 10 minutes full-body stretching.",
+          "Spend extra time on any stiff area mentioned in the notes."
+        ],
+        exercises: [
+          {
+            name: "Mobility flow",
+            steps: [
+              "Cat-cow x 6, world stretch x 4 each side, deep squat hold x 20 seconds.",
+              "If recovery focus is " + recoveryBias + ", add one extra round.",
+              "Finish with 5 slow breaths lying on the floor."
+            ],
+            prescription: {
+              display: phase.key === "overload" ? "15 min easy flow" : "10 min easy flow",
+              benchmarkNote: "No strain. This day is to restore range and readiness."
+            }
+          }
+        ]
+      };
+    }
+
+    function generateWeeks(profile) {
+      const trainingDays = getTrainingDayIndices(profile.daysPerWeek);
+      const focusOrder = getFocusOrder(profile);
+
+      return WEEK_PHASES.map((phase, weekIndex) => {
+        let focusCursor = 0;
+        const days = DAY_NAMES.map((dayName, dayIndex) => {
+          if (trainingDays.includes(dayIndex)) {
+            const focus = focusOrder[focusCursor % focusOrder.length];
+            focusCursor += 1;
+            return buildSession(profile, focus, dayName, focusCursor + dayIndex, weekIndex);
+          }
+          return buildRecoveryDay(profile, dayName, weekIndex);
+        });
+
+        return {
+          key: phase.key,
+          title: phase.title,
+          focus: phase.focus,
+          cue: phase.cue,
+          days
+        };
+      });
+    }
+
+    function buildCoachSummary(profile) {
+      const bmi = calculateBmi(profile.weightKg, profile.heightCm);
+      const lastCheckIn = state.checkIns[state.checkIns.length - 1];
+      const completionRate = Math.round(getCompletedDaysForWeek(state.viewedWeek) / profile.daysPerWeek * 100) || 0;
+      const flags = getNeedsFlags(profile.needs);
+      const recoveryLine =
+        profile.recoveryFocus === "high" ? "Recovery is prioritized, so volume is kept a little cleaner." :
+        profile.recoveryFocus === "aggressive" ? "Progression is pushed harder, so sleep and food need to match it." :
+        "Recovery is balanced, so workload rises in a steady way.";
+      const checkInLine = lastCheckIn
+        ? "Latest weekly check-in: " + lastCheckIn.weightKg + " kg, energy " + lastCheckIn.energy + "/5."
+        : "No weekly check-in saved yet.";
+      const needsLine = profile.needs
+        ? "Special notes saved: " + profile.needs + "."
+        : "No special injury or limitation notes were added.";
+      const flagsLine = [
+        flags.shoulder ? "Shoulder-friendly swaps are active." : "",
+        flags.back ? "Heavy hinges are reduced." : "",
+        flags.knee ? "High-impact knee work is reduced." : "",
+        flags.wrist ? "High wrist-load skills are reduced." : "",
+        flags.pullup ? "Pull strength needs are recognized in the weekly mix." : "",
+        flags.fatLoss ? "Conditioning demand is treated as a priority." : ""
+      ].filter(Boolean).join(" ");
+
+      return profile.name + " is running a " + profile.style + " plan for " + profile.goal +
+        " with " + profile.daysPerWeek + " training days per week at the " + profile.location +
+        ". Current BMI estimate is " + bmi + ". " + recoveryLine + " Completion for the viewed week is " +
+        completionRate + "%. " + needsLine + " " + flagsLine + " " + checkInLine;
+    }
+
+    function getCompletedDaysForWeek(weekIndex) {
+      const weekProgress = state.progress[weekIndex] || {};
+      return Object.values(weekProgress).filter(Boolean).length;
+    }
+
+    function markDayComplete(weekIndex, dayIndex, value) {
+      state.progress[weekIndex] = state.progress[weekIndex] || {};
+      state.progress[weekIndex][dayIndex] = value;
+      saveState();
+      renderDashboard();
+    }
+
+    function formatDate(dateValue) {
+      return new Date(dateValue).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    }
+
+    function getPlanCompletionStats() {
+      const weeks = state.plan?.weeks || [];
+      let totalTrainingDays = 0;
+      let totalCompleted = 0;
+      let viewedTrainingDays = 0;
+      let viewedCompleted = 0;
+
+      weeks.forEach((week, weekIndex) => {
+        week.days.forEach((day, dayIndex) => {
+          if (day.type !== "training") {
+            return;
+          }
+
+          const complete = !!(state.progress[weekIndex] || {})[dayIndex];
+          totalTrainingDays += 1;
+          totalCompleted += complete ? 1 : 0;
+
+          if (weekIndex === state.viewedWeek) {
+            viewedTrainingDays += 1;
+            viewedCompleted += complete ? 1 : 0;
+          }
+        });
+      });
+
+      return {
+        totalTrainingDays,
+        totalCompleted,
+        totalPercent: totalTrainingDays ? Math.round(totalCompleted / totalTrainingDays * 100) : 0,
+        viewedTrainingDays,
+        viewedCompleted,
+        viewedPercent: viewedTrainingDays ? Math.round(viewedCompleted / viewedTrainingDays * 100) : 0
+      };
+    }
+
+    function getNextOpenSession() {
+      if (!state.plan?.weeks?.length) {
+        return null;
+      }
+
+      const startWeek = Math.min(getCurrentWeekIndex(), state.plan.weeks.length - 1);
+
+      for (let weekIndex = startWeek; weekIndex < state.plan.weeks.length; weekIndex += 1) {
+        const week = state.plan.weeks[weekIndex];
+        for (let dayIndex = 0; dayIndex < week.days.length; dayIndex += 1) {
+          const day = week.days[dayIndex];
+          const complete = !!(state.progress[weekIndex] || {})[dayIndex];
+
+          if (day.type === "training" && !complete) {
+            return { weekIndex, dayIndex, week, day };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function getPlanAgeDays() {
+      if (!state.plan?.createdAt) {
+        return 0;
+      }
+
+      const diffMs = Date.now() - new Date(state.plan.createdAt).getTime();
+      return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+    }
+
+    function getWeightTrend() {
+      const weightEntries = state.checkIns
+        .map((item) => Number(item.weightKg))
+        .filter((value) => Number.isFinite(value));
+
+      if (weightEntries.length < 2) {
+        return {
+          value: state.profile ? state.profile.weightKg + "kg" : "-",
+          note: "Add two weekly check-ins to calculate a trend.",
+          className: ""
+        };
+      }
+
+      const first = weightEntries[0];
+      const latest = weightEntries[weightEntries.length - 1];
+      const diff = +(latest - first).toFixed(1);
+      const label = diff === 0 ? "Stable" : diff > 0 ? "+" + diff + "kg" : diff + "kg";
+
+      return {
+        value: label,
+        note: "From " + first + "kg to " + latest + "kg across saved check-ins.",
+        className: diff === 0 ? "" : diff > 0 ? "warning" : "highlight"
+      };
+    }
+
+    function getRecentEnergyAverage() {
+      const entries = state.checkIns
+        .slice(-4)
+        .map((item) => Number(item.energy))
+        .filter((value) => Number.isFinite(value));
+
+      if (!entries.length) {
+        return {
+          value: "-",
+          note: "Log energy after each week to monitor readiness."
+        };
+      }
+
+      const average = entries.reduce((sum, value) => sum + value, 0) / entries.length;
+      return {
+        value: average.toFixed(1) + "/5",
+        note: "Average from the last " + entries.length + " saved check-in" + (entries.length > 1 ? "s." : ".")
+      };
+    }
+
+    function renderSummaryCards() {
+      const stats = getPlanCompletionStats();
+      const activeWeek = getCurrentWeekIndex() + 1;
+      const nextSession = getNextOpenSession();
+      const weightTrend = getWeightTrend();
+      const energyAverage = getRecentEnergyAverage();
+      const nextSessionLabel = nextSession
+        ? nextSession.day.dayName + " / " + nextSession.day.title
+        : "Cycle done";
+
+      return `
+        <div class="summary-grid">
+          <article class="summary-card highlight">
+            <div class="summary-label">Active week</div>
+            <div class="summary-value">W${activeWeek}</div>
+            <p>${WEEK_PHASES[Math.min(activeWeek - 1, WEEK_PHASES.length - 1)].title}. Day ${getPlanAgeDays() + 1} since start.</p>
+          </article>
+          <article class="summary-card">
+            <div class="summary-label">This week</div>
+            <div class="summary-value">${stats.viewedPercent}%</div>
+            <p>${stats.viewedCompleted}/${stats.viewedTrainingDays} training days marked complete.</p>
+          </article>
+          <article class="summary-card">
+            <div class="summary-label">Full block</div>
+            <div class="summary-value">${stats.totalPercent}%</div>
+            <p>${stats.totalCompleted}/${stats.totalTrainingDays} planned training days completed.</p>
+          </article>
+          <article class="summary-card rose">
+            <div class="summary-label">Next session</div>
+            <div class="summary-value">${nextSession ? "W" + (nextSession.weekIndex + 1) : "Done"}</div>
+            <p>${escapeHtml(nextSessionLabel)}</p>
+          </article>
+          <article class="summary-card ${weightTrend.className}">
+            <div class="summary-label">Weight trend</div>
+            <div class="summary-value">${escapeHtml(weightTrend.value)}</div>
+            <p>${escapeHtml(weightTrend.note)}</p>
+          </article>
+          <article class="summary-card">
+            <div class="summary-label">Energy average</div>
+            <div class="summary-value">${escapeHtml(energyAverage.value)}</div>
+            <p>${escapeHtml(energyAverage.note)}</p>
+          </article>
+        </div>
+      `;
+    }
+
+    function renderWeekTabs() {
+      return `
+        <div class="tabs">
+          ${state.plan.weeks.map((week, index) => `
+            <button class="tab ${index === state.viewedWeek ? "active" : ""}" type="button" data-week-tab="${index}">
+              ${escapeHtml(week.title)}
+            </button>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderWeekShell() {
+      const week = state.plan.weeks[state.viewedWeek];
+      const completed = getCompletedDaysForWeek(state.viewedWeek);
+      const progressPercent = Math.min(100, Math.round(completed / state.profile.daysPerWeek * 100));
+      const nextWeek = state.plan.weeks[state.viewedWeek + 1];
+
+      return `
+        <section class="week-shell">
+          <div class="week-head">
+            <div>
+              <div class="tag-row">
+                <div class="tag"><strong>Goal</strong>${escapeHtml(toTitle(state.profile.goal))}</div>
+                <div class="tag"><strong>Style</strong>${escapeHtml(toTitle(state.profile.style))}</div>
+                <div class="tag"><strong>Location</strong>${escapeHtml(toTitle(state.profile.location))}</div>
+                <div class="tag"><strong>Session</strong>${state.profile.sessionMinutes} min</div>
+              </div>
+              <h3 class="week-title">${escapeHtml(week.title)}</h3>
+              <p>${escapeHtml(week.focus)} ${escapeHtml(week.cue)}</p>
+              ${nextWeek ? `<div class="timeline"><div class="tag"><strong>Next week</strong>${escapeHtml(nextWeek.title)}: ${escapeHtml(nextWeek.focus)}</div></div>` : ""}
+            </div>
+            <div class="progress-wrap">
+              <div>
+                <div class="summary-label">Week completion</div>
+                <div class="summary-value">${progressPercent}%</div>
+              </div>
+              <div class="progress-bar"><span style="width:${progressPercent}%"></span></div>
+              <p>${completed} of ${state.profile.daysPerWeek} training days marked complete. Plan started ${formatDate(state.plan.createdAt)}.</p>
+            </div>
+          </div>
+          <div class="days">
+            ${week.days.map((day, dayIndex) => renderDayCard(day, dayIndex)).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderDayCard(day, dayIndex) {
+      const done = !!(state.progress[state.viewedWeek] || {})[dayIndex];
+      const buttonLabel = done ? "Undo completion" : "Mark complete";
+      const statusPill = day.type === "recovery"
+        ? `<span class="pill rest">Recovery day</span>`
+        : done
+          ? `<span class="pill done">Completed</span>`
+          : `<span class="pill">Training day</span>`;
+
+      return `
+        <article class="day-card">
+          <div class="day-top">
+            <div>
+              <h3>${escapeHtml(day.dayName)} - ${escapeHtml(day.title)}</h3>
+              <p>${escapeHtml(day.sessionCue)}</p>
+            </div>
+            <div class="day-meta">
+              ${statusPill}
+              <span class="pill">${escapeHtml(toTitle(day.focus))}</span>
+            </div>
+          </div>
+
+          <div class="section-label">Warm-up / startup</div>
+          <ol class="list">
+            ${day.warmup.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ol>
+
+          <div class="section-label">Main work</div>
+          <div class="exercise-grid">
+            ${day.exercises.map((exercise) => `
+              <div class="exercise">
+                <div class="exercise-head">
+                  <div>
+                    <strong>${escapeHtml(exercise.name)}</strong>
+                    <span>${escapeHtml(exercise.prescription.benchmarkNote)}</span>
+                  </div>
+                  <div class="prescription">${escapeHtml(exercise.prescription.display)}</div>
+                </div>
+                <details>
+                  <summary>Show movement steps</summary>
+                  <ol class="list">
+                    ${exercise.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}
+                  </ol>
+                </details>
+              </div>
+            `).join("")}
+          </div>
+
+          <div class="section-label">Cooldown</div>
+          <ol class="list">
+            ${day.cooldown.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ol>
+
+          ${day.type === "training" ? `
+            <div class="form-actions">
+              <button class="btn btn-primary" type="button" data-complete-day="${dayIndex}" data-complete-state="${done ? "undo" : "done"}">${buttonLabel}</button>
+            </div>
+          ` : ""}
+        </article>
+      `;
+    }
+
+    function renderCheckInSection() {
+      return `
+        <section class="checkin-shell">
+          <div class="checkin-card">
+            <h3>Weekly Check-in</h3>
+            <p class="subtle">
+              Save current weight, energy, and notes at the end of the week. This remains stored locally with the plan.
+            </p>
+            <form id="checkin-form" class="form-grid">
+              <div class="input-row">
+                <label>
+                  <span>Current weight (kg)</span>
+                  <input type="number" id="checkin-weight" min="30" max="250" step="0.1" placeholder="${state.profile.weightKg}">
+                </label>
+                <label>
+                  <span>Energy (1 to 5)</span>
+                  <select id="checkin-energy">
+                    <option value="1">1 - Exhausted</option>
+                    <option value="2">2 - Low</option>
+                    <option value="3" selected>3 - Normal</option>
+                    <option value="4">4 - Good</option>
+                    <option value="5">5 - Excellent</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>Check-in notes</span>
+                <textarea id="checkin-notes" placeholder="Example: week felt easy, shoulders tired, need more pull work, endurance improved."></textarea>
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Save check-in</button>
+                <button class="btn btn-secondary" type="button" id="rebuild-plan">Rebuild next 4-week block</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="checkin-card">
+            <h3>Check-in History</h3>
+            <div class="history-list">
+              ${(state.checkIns.length ? state.checkIns.slice().reverse() : [{ empty: true }]).map((item) => {
+                if (item.empty) {
+                  return `<div class="history-item"><strong>No check-ins yet</strong><p>The first saved weekly check-in will appear here.</p></div>`;
+                }
+                return `
+                  <div class="history-item">
+                    <strong>${formatDate(item.date)} - ${item.weightKg} kg - energy ${item.energy}/5</strong>
+                    <p>${escapeHtml(item.notes || "No extra notes saved.")}</p>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderDashboard() {
+      if (!state.profile || !state.plan) {
+        dashboardRoot.innerHTML = `
+          <div class="empty-state">
+            <h3>No active plan yet</h3>
+            <p>
+              Create a profile to generate the four-week block. Progress monitoring starts when the first session is saved.
+            </p>
+            <ul class="empty-list">
+              <li>Weekly completion percentage</li>
+              <li>Next open training day</li>
+              <li>Weight and energy check-in trend</li>
+            </ul>
+          </div>
+        `;
+        return;
+      }
+
+      const cycleMessage = isCycleComplete()
+        ? `<div class="tag"><strong>Cycle complete</strong>Create a fresh 4-week block from the latest profile and check-in.</div>`
+        : "";
+
+      dashboardRoot.innerHTML = `
+        <div class="dashboard-head">
+          <div>
+            <h2>${escapeHtml(state.profile.name)}'s Monitor</h2>
+            <p class="subtle" style="margin-bottom:0;">
+              Generated on ${formatDate(state.plan.createdAt)} from profile stats, training location, level, preferred style, and goal.
+            </p>
+          </div>
+          <div class="tag-row">
+            <div class="tag"><strong>Level</strong>${escapeHtml(toTitle(state.profile.level))}</div>
+            <div class="tag"><strong>Days</strong>${state.profile.daysPerWeek}/week</div>
+            ${cycleMessage}
+          </div>
+        </div>
+
+        ${renderSummaryCards()}
+
+        <section class="coach-card">
+          <h3>Planner summary</h3>
+          <p>${escapeHtml(buildCoachSummary(state.profile))}</p>
+        </section>
+
+        ${renderWeekTabs()}
+        ${renderWeekShell()}
+        ${renderCheckInSection()}
+      `;
+
+      bindDynamicEvents();
+    }
+
+    function fillForm(profile) {
+      if (!profile) {
+        return;
+      }
+
+      document.getElementById("name").value = profile.name || "";
+      document.getElementById("age").value = profile.age || "";
+      document.getElementById("weightKg").value = profile.weightKg || "";
+      document.getElementById("heightCm").value = profile.heightCm || "";
+      document.getElementById("level").value = profile.level || "";
+      document.getElementById("location").value = profile.location || "";
+      document.getElementById("daysPerWeek").value = String(profile.daysPerWeek || 4);
+      document.getElementById("sessionMinutes").value = String(profile.sessionMinutes || 50);
+      document.getElementById("recoveryFocus").value = profile.recoveryFocus || "standard";
+      document.getElementById("needs").value = profile.needs || "";
+
+      document.querySelectorAll('input[name="goal"]').forEach((input) => {
+        input.checked = input.value === profile.goal;
+      });
+      document.querySelectorAll('input[name="style"]').forEach((input) => {
+        input.checked = input.value === profile.style;
+      });
+      document.querySelectorAll('input[name="equipment"]').forEach((input) => {
+        input.checked = (profile.equipment || []).includes(input.value);
+      });
+    }
+
+    function readProfileFromForm() {
+      const name = document.getElementById("name").value.trim();
+      const age = Number(document.getElementById("age").value);
+      const weightKg = Number(document.getElementById("weightKg").value);
+      const heightCm = Number(document.getElementById("heightCm").value);
+      const level = document.getElementById("level").value;
+      const goal = document.querySelector('input[name="goal"]:checked')?.value;
+      const style = document.querySelector('input[name="style"]:checked')?.value;
+      const location = document.getElementById("location").value;
+      const daysPerWeek = Number(document.getElementById("daysPerWeek").value);
+      const sessionMinutes = Number(document.getElementById("sessionMinutes").value);
+      const recoveryFocus = document.getElementById("recoveryFocus").value;
+      const needs = document.getElementById("needs").value.trim();
+      const equipment = Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map((input) => input.value);
+
+      if (!name || !age || !weightKg || !heightCm || !level || !goal || !style || !location) {
+        throw new Error("Please complete all required fields.");
+      }
+
+      return {
+        name,
+        age,
+        weightKg,
+        heightCm,
+        level,
+        goal,
+        style,
+        location,
+        daysPerWeek,
+        sessionMinutes,
+        recoveryFocus,
+        needs,
+        equipment
+      };
+    }
+
+    function buildPlan(profile) {
+      return {
+        createdAt: new Date().toISOString(),
+        weeks: generateWeeks(profile)
+      };
+    }
+
+    function resetPlanner() {
+      localStorage.removeItem(STORAGE_KEY);
+      state.profile = null;
+      state.plan = null;
+      state.progress = {};
+      state.checkIns = [];
+      state.viewedWeek = 0;
+      form.reset();
+      document.querySelector('input[name="equipment"][value="bodyweight"]').checked = true;
+      renderDashboard();
+    }
+
+    function rebuildPlanFromCurrentProfile() {
+      if (!state.profile) {
+        return;
+      }
+      state.plan = buildPlan(state.profile);
+      state.progress = {};
+      state.viewedWeek = 0;
+      saveState();
+      renderDashboard();
+    }
+
+    function bindDynamicEvents() {
+      document.querySelectorAll("[data-week-tab]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.viewedWeek = Number(button.getAttribute("data-week-tab"));
+          renderDashboard();
+        });
+      });
+
+      document.querySelectorAll("[data-complete-day]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const dayIndex = Number(button.getAttribute("data-complete-day"));
+          const mode = button.getAttribute("data-complete-state");
+          markDayComplete(state.viewedWeek, dayIndex, mode === "done");
+        });
+      });
+
+      const checkinForm = document.getElementById("checkin-form");
+      const rebuildButton = document.getElementById("rebuild-plan");
+
+      if (checkinForm) {
+        checkinForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const weightInput = document.getElementById("checkin-weight").value;
+          const energy = Number(document.getElementById("checkin-energy").value);
+          const notes = document.getElementById("checkin-notes").value.trim();
+          const weightKg = Number(weightInput || state.profile.weightKg);
+
+          state.profile.weightKg = weightKg;
+          state.checkIns.push({
+            date: new Date().toISOString(),
+            weightKg,
+            energy,
+            notes
+          });
+
+          saveState();
+          fillForm(state.profile);
+          renderDashboard();
+        });
+      }
+
+      if (rebuildButton) {
+        rebuildButton.addEventListener("click", () => {
+          rebuildPlanFromCurrentProfile();
+        });
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      try {
+        state.profile = readProfileFromForm();
+        state.plan = buildPlan(state.profile);
+        state.progress = {};
+        state.viewedWeek = getCurrentWeekIndex();
+        saveState();
+        renderDashboard();
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    resetButton.addEventListener("click", () => {
+      if (confirm("Clear the saved workout planner and all weekly check-ins?")) {
+        resetPlanner();
+      }
+    });
+
+    exportButton.addEventListener("click", () => {
+      exportSavedData();
+    });
+
+    importButton.addEventListener("click", () => {
+      importFileInput.click();
+    });
+
+    importFileInput.addEventListener("change", () => {
+      const file = importFileInput.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      if ((state.profile || state.plan) && !confirm("Importing replaces the saved planner data in this browser. Continue?")) {
+        importFileInput.value = "";
+        return;
+      }
+
+      importSavedData(file);
+    });
+
+    loadState();
+    if (state.profile) {
+      fillForm(state.profile);
+      state.viewedWeek = getCurrentWeekIndex();
+    }
+    renderDashboard();
+  </script>
+</body>
+</html>
